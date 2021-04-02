@@ -144,8 +144,18 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     if anyclue == True:
         return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
+
 def candidatesNumOptions(candidates):
     return len(candidates) - 1
+
+
+def createPotentialLetterList(startingList, word, codes):
+    newList = startingList
+    i = 0;
+    for code in codes:
+        newList[code] = word[i]
+        i = i + 1
+    return newList
 
 
 if __name__ == "__main__":
@@ -174,7 +184,7 @@ if __name__ == "__main__":
     for word in word_list:
         word_candidates = findMatch(word[1:], rubric, my_dictionary)
         if word_candidates != None:
-            word_candidates.insert(0,word[0])
+            word_candidates.insert(0,word) # Changed so that the code sequence remains associated with the potential answers
             all_word_candidates.append(word_candidates)
 
     # print(*candidates)
@@ -190,4 +200,23 @@ if __name__ == "__main__":
     for word_candidates in all_word_candidates:
         print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
     
+
+    # And now try some solutions starting with the word with the least possiblities ...
+    # This is fundamentally the wrong way, but it will get us going. It should really be a
+    # recursive function.
+    letterListToDate = rubric
+
+    for word_candidates in all_word_candidates:
+        for candidate in word_candidates[1:]:
+            print("Trying %s for word %s" % (candidate, word_candidates[0]))
+            potentialLetterList = createPotentialLetterList(letterListToDate, candidate, word_candidates[0][1:])
+            showPuzzle(matrix, potentialLetterList)
+
+            # Now, that list should be applied to all the words (one at a time) that are after this one.
+            # If any of them give a zero option, it has failed. If one of them gives one option, it has
+            # succeeded. If neither, either try antoher top level option, or go down to the next word.
+            
+            exit()
+            
+
 
