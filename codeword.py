@@ -40,6 +40,30 @@ def setPuzzle():
 # the word to the word list - also need to store the location of the word (or at least of
 # the first letter).
 
+def showPuzzle(matrix, knownLetters):
+    for row in matrix:
+        print("+--"*len(row),end="+\n")
+        print(end="|")
+        for element in row:
+            if element == 0:
+                print("XX", end="|")
+            else:
+                print(f"{element:2d}", end="|")
+        print()
+        print(end="|")
+        for element in row:
+            if element == 0:
+                print("XX", end="|")
+            else:
+                letter = knownLetters.get(element)
+                if letter != None:
+                    print(letter.capitalize(),end=" |")
+                else:
+                    print("  ", end="|")
+        print()
+    print("+--"*len(row),end="+\n")
+    
+
 def parse(m: tuple):
     """
     Parse the puzzle matrix both across and down to find words to solve.
@@ -132,6 +156,9 @@ if __name__ == "__main__":
 
     rubric = {22 : 'o', 10 : 'r', 3 : 'p'}      # Note to add to a dictionary, use rubric[n] = 'x'
 
+    # Show starting position
+    showPuzzle(matrix, rubric)
+
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
@@ -153,9 +180,9 @@ if __name__ == "__main__":
     # print(*candidates)
 
     # breakpoint()
-    print("=== First list ===")
-    for word_candidates in all_word_candidates:
-        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
+    # print("=== First list ===")
+    # for word_candidates in all_word_candidates:
+    #     print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
 
     # order by number of possible solutions
     all_word_candidates.sort(key=candidatesNumOptions)
