@@ -120,6 +120,8 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     if anyclue == True:
         return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
+def candidatesNumOptions(candidates):
+    return len(candidates) - 1
 
 
 if __name__ == "__main__":
@@ -132,7 +134,7 @@ if __name__ == "__main__":
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    with open(dir_path + "/engmix.txt", "r", encoding="latin-1") as myfile:
+    with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
         my_dictionary = myfile.read().splitlines()
 
     # breakpoint()
@@ -140,16 +142,25 @@ if __name__ == "__main__":
     # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
     # What's the best way to store them?
 
-    candidates = list()
+    all_word_candidates = list()
 
     for word in word_list:
-        candidate = findMatch(word[1:], rubric, my_dictionary)
-        if candidate != None:
-            candidate.insert(0,word[0])
-            candidates.append(candidate)
+        word_candidates = findMatch(word[1:], rubric, my_dictionary)
+        if word_candidates != None:
+            word_candidates.insert(0,word[0])
+            all_word_candidates.append(word_candidates)
 
     # print(*candidates)
 
     # breakpoint()
-    for answer in candidates:
-        print("Word %s has %s possible solutions" % (answer[0], "{:,}".format(len(answer) - 1)))
+    print("=== First list ===")
+    for word_candidates in all_word_candidates:
+        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
+
+    # order by number of possible solutions
+    all_word_candidates.sort(key=candidatesNumOptions)
+    print("=== Ordered list ===")
+    for word_candidates in all_word_candidates:
+        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
+    
+
