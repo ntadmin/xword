@@ -64,6 +64,11 @@ def showPuzzle(matrix, knownLetters):
     print("+--"*len(row),end="+\n")
     
 
+def showAwcList(wcList):
+    for word_candidates in wcList:
+        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
+ 
+
 def parse(m: tuple):
     """
     Parse the puzzle matrix both across and down to find words to solve.
@@ -158,6 +163,18 @@ def createPotentialLetterList(startingList, word, codes):
     return newList
 
 
+def createNewWClist(startingWClist, rubric, depth):
+    newWClist = list()
+    for word_candidates in startingWClist:
+        newWC = findMatch(word_candidates[0][1:], rubric, word_candidates[1:])
+        if newWC != None:
+            newWC.insert(0, word_candidates[0])
+        else:
+            newWC = list()
+        newWClist.append(newWC)
+    return newWClist
+
+
 if __name__ == "__main__":
 
     matrix = setPuzzle()
@@ -197,8 +214,7 @@ if __name__ == "__main__":
     # order by number of possible solutions
     all_word_candidates.sort(key=candidatesNumOptions)
     print("=== Ordered list ===")
-    for word_candidates in all_word_candidates:
-        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
+    showAwcList(all_word_candidates)
     
 
     # And now try some solutions starting with the word with the least possiblities ...
@@ -206,16 +222,39 @@ if __name__ == "__main__":
     # recursive function.
     letterListToDate = rubric
 
+    # how deep into the word list (ie how far into all_word_candidates have we fixed
+    # (potentially) a candidate word
+    depth = 0
     for word_candidates in all_word_candidates:
+        depth = depth + 1
         for candidate in word_candidates[1:]:
-            print("Trying %s for word %s" % (candidate, word_candidates[0]))
+            print("\nTrying %s for word %s\nGives:" % (candidate, word_candidates[0]))
             potentialLetterList = createPotentialLetterList(letterListToDate, candidate, word_candidates[0][1:])
-            showPuzzle(matrix, potentialLetterList)
 
             # Now, that list should be applied to all the words (one at a time) that are after this one.
             # If any of them give a zero option, it has failed. If one of them gives one option, it has
             # succeeded. If neither, either try antoher top level option, or go down to the next word.
-            
+
+            # Create a fresh word_list using the new potential letters
+            all_wc_test = createNewWClist(all_word_candidates, potentialLetterList, depth)
+            showAwcList(all_wc_test)
+            failed = False
+            soloOption = False
+            for wc in all_wc_test[depth:]:
+                numCandidatesHere = len(wc[1:])
+                if numCandidatesHere == 0:
+                    print("That's a fail - at least one zero option results")
+                    failed = True
+                    break
+                elif numCandidatesHere == 1:
+                    print("This has a one option outcome, and so should positively be recursed into (but that's not coded yet")
+                    soloOption = True
+                    # don't break out of loop - failed trumps soloOption (I think, but they should never happen together. hmmm)
+                          
+            print("No code to do cleverer stuff, so just trying the next option for this level.")
+
+        # Complete hack to stop it after trying all the options for the first word at the moment.
+        if depth == 1:
             exit()
             
 
