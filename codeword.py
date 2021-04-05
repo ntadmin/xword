@@ -8,6 +8,10 @@
 
 import re, os
 
+# Set the puzzle, at present a hand encoded version of a sample puzzle.
+# Ideally this will somehow aut import a puzzled from a puzzle source and encode it.
+
+
 def setPuzzle():
     """
     Returns a tuple of tuples containing the puzzle to be solved
@@ -29,16 +33,9 @@ def setPuzzle():
 
     return matrix
 
-
-# =============== Extract words ===============
-
-# Horizontal words: Have a word list. This will be a list of lists. First two elements
-# are the position of the first letter.
-# For each row, start at [0] and test if non-zero.
-# If it's non-zero, test whether next element is non-zero. If it is, this is becoming a word.
-# Add the first two letters to a tentative word, then progress until we hit a zero. Add
-# the word to the word list - also need to store the location of the word (or at least of
-# the first letter).
+# ============ Put stuff on the screen ==========
+# 
+# A couple of functions to output the state of play.
 
 def showPuzzle(matrix, knownLetters):
     for row in matrix:
@@ -68,6 +65,16 @@ def showAwcList(wcList):
     for word_candidates in wcList:
         print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
  
+
+# =============== Extract words ===============
+
+# Horizontal words: Have a word list. This will be a list of lists. First two elements
+# are the position of the first letter.
+# For each row, start at [0] and test if non-zero.
+# If it's non-zero, test whether next element is non-zero. If it is, this is becoming a word.
+# Add the first two letters to a tentative word, then progress until we hit a zero. Add
+# the word to the word list - also need to store the location of the word (or at least of
+# the first letter).
 
 def parse(m: tuple):
     """
