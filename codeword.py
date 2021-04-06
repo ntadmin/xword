@@ -63,7 +63,7 @@ def showPuzzle(matrix, knownLetters):
 
 def showAwcList(wcList):
     for word_candidates in wcList:
-        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
+        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(candidatesNumOptions(word_candidates))))
  
 
 # =============== Extract words ===============
@@ -147,8 +147,8 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
         return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
 
-def candidatesNumOptionsPlusOneGOBACKTONUMOPTS(candidates):
-    return len(candidates)
+def candidatesNumOptions(candidates):
+    return len(candidates) - 1
 
 
 def createPotentialLetterList(startingList, word, codes):
@@ -171,12 +171,12 @@ def createNewWCsortedList(startingAllWClist, rubric, depth):
         if myDepth <= depth :
             newWClist.append(newWC)
         else :
-            numOptsPlusOne = candidatesNumOptionsPlusOne(newWC)
-            if (numOptsPlusOne >= candidatesNumOptionsPlusOne(newWCList[myDepth]) :
+            numOpts = candidatesNumOptions(newWC)
+            if numOpts >= candidatesNumOptions(newWCList[myDepth]) :
                 newWClist.append(newWC)
             else :
                 lookDepth = myDepth - 1
-                while numOptsPlusOne < candidatesNumOptionsPlusOne(newWCList[lookDepth])
+                while numOpts < candidatesNumOptions(newWCList[lookDepth]) :
                     lookDepth = lookDepth - 1
                 newWClist.insert(lookDepth, newWC)
         myDepth = myDepth + 1
@@ -218,7 +218,7 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
         depth = depth + 1
         success = True
         for wc in all_wc_test[depth:]:
-            numCandidatesHere = len(wc[1:])
+            numCandidatesHere = candidatesNumOptions(wc)
             if numCandidatesHere == 0:
                 print("That's a fail - at least one zero option results")
                 success = False
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     #     print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
 
     # order by number of possible solutions
-    all_word_candidates.sort(key=candidatesNumOptionsPlusOne)
+    all_word_candidates.sort(key=candidatesNumOptions)
 
     # And recurse to a soltuion
     recurseThroughAllCandidates(all_word_candidates, rubric, 0)
