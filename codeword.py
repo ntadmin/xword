@@ -146,6 +146,9 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     if anyclue == True:
         return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
+# ======== A few access fucntions giving easy access tot he infromation stored
+#
+# in the list for an answer/word
 
 def candidatesNumOptions(candidates):
     """
@@ -154,6 +157,14 @@ def candidatesNumOptions(candidates):
     """
     return len(candidates) - 1
 
+def candidatesCodeNumberList(candidates):
+    """
+    Give the list of code numbers for the answer that these candidates point to
+    """
+    return candidates[0][1:]
+
+
+# ======= More hard core stuff ========
 
 def createPotentialLetterList(startingList, word, codes):
     """
@@ -179,29 +190,32 @@ def createNewWCsortedList(startingAllWClist, letterToNumberList, depth):
     retain their current order (they should be 1 by definition, and should keep
     recursion order), lower ayer reordered to have lowest number of options first.
     """
-    newWClist = list()
+
+    # NOTE: we probably don't need to redo the previously done levels here ...
+    
+    newWClist      = list()
+    newWClistBelow = list()
     myDepth = 0;
     for word_candidates in startingAllWClist:
-        newWC = findMatch(word_candidates[0][1:], letterToNumberList, word_candidates[1:])
-        if newWC == None:
-            newWC = list()
-        newWC.insert(0, word_candidates[0])
-        newWClist.append(newWC)
-#        if myDepth <= depth :
-#            newWClist.append(newWC)
-#        else :
-#            numOpts = candidatesNumOptions(newWC)
-#            if numOpts >= candidatesNumOptions(newWClist[myDepth]) :
-#                newWClist.append(newWC)
-#            else :
-#                lookDepth = myDepth - 1
-#                while numOpts < candidatesNumOptions(newWClist[lookDepth]) :
-#                    lookDepth = lookDepth - 1
-#                newWClist.insert(lookDepth, newWC)
-#        myDepth = myDepth + 1
-    # Ideally we would do newWClist[depth:].sort() just before return but I 
-    # think that is dodgy
-    newWClist[depth:].sort()
+
+        # If we've alreday got this one down to one option, simply copy
+        # it trhough to the new list
+        if myDepth <= depth :
+            newWClist.append(word_candidates.copy())
+        else :
+            # Create trimmed list for this word/answer given the new code letter list
+            newWC = findMatch(candidatesCodeNumberList(word_candidates), letterToNumberList, word_candidates[1:])
+            if newWC == None:
+                newWC = list()
+            newWC.insert(0, word_candidates[0])
+            newWClistBelow.append(newWC)
+
+        myDepth = myDepth + 1
+
+    # Sort the below list
+    newWClistBelow.sort(key=candidatesNumOptions)
+    newWClist.extend(newWClistBelow)
+
     return newWClist
 
 # Actually do the exhaustive search
@@ -210,16 +224,20 @@ def createNewWCsortedList(startingAllWClist, letterToNumberList, depth):
 #        all_word_candidates list has beed created and sorted but no
 #        examinstaion of it has been done
 # letterList: the letter list currently being used / evaluated.
-# wc: the 
+# all_wc: the collection of word clues and current options being explored.
+#
+# return three pieces of information:
+# On Failure (False, None, None)
+# On success (True, solved list of Word candidates (ie one ancswer each), number fo letter list)
 def recurseThroughAllCandidates(all_wc, letterList, depth):
-    print("===== Ordered list incoming =====")
-    print("Depth ", depth)
+    print("===== Ordered list incoming at depth %d =====" % depth)
     showAwcList(all_wc)
     
     # Try all the words this answer might be for the current scenario
-    for candidate in all_wc[depth][1:]:
-        print("\nTrying %s for word %s\nGives:" % (candidate, word_candidates[0]))
-        potentialLetterList = createPotentialLetterList(letterList, candidate, word_candidates[0][1:])
+    this_depth_wc = all_wc[depth]
+    for candidate in this_depth_wc[1:]:
+        print("\nTrying %s for word %s at depth %d" % (candidate, this_depth_wc[0], depth))
+        potentialLetterList = createPotentialLetterList(letterList, candidate, candidatesCodeNumberList(this_depth_wc))
 
         # Now, that letter list is be applied to all the words (one at a time) that
         # are after this one. If any of them then gives a zero option, it means that
@@ -230,21 +248,20 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
         # candidates in order of number of solutions, we must then explore a single
         # option layer next, which is what you should do.
 
-        # Create a fresh word_list using the new potential letters
+        # If not, create a fresh word_list using the new potential letters
         all_wc_test = createNewWCsortedList(all_wc, potentialLetterList, depth)
-        showAwcList(all_wc_test)
 
-        # Go to the next word
-        depth = depth + 1
+        # If the word we've just put in is actually the word for the final
+        # one to be solved, we have succeeded
+        if depth == len(all_wc) - 1:
+            print("Got to the last word in the puzzle with no failures")
+            print(potentialLetterList)
+            return True, all_wc_test, potentialLetterList
 
-        # If that word is actually one after the number of words, we have succeeded
-        if depth == len(all_wc_test) :
-            print("Got through all the words with no failures")
-            return True
 
         # Otherwise Look at the subsequent layers (word candidates) and find one that doesn't fail.
         success = True
-        for wc in all_wc_test[depth:]:
+        for wc in all_wc_test[depth + 1:]:
             numCandidatesHere = candidatesNumOptions(wc)
             if numCandidatesHere == 0:
                 print("That's a fail - at least one zero option results")
@@ -254,14 +271,17 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
         if success == True:
             # We can recurse, but the number of options will have changed,
             # So we need to resort and recurse
-            success = recurseThroughAllCandidates(all_wc_test, potentialLetterList, depth)
+            print("Going deeper")
+            result = recurseThroughAllCandidates(all_wc_test, potentialLetterList, depth + 1)
+            success = result[0]
 
-        if success == True:
-            print ("GOT IT")
-            exit()
+            if success == True:
+                print("Passing success back up the line")
+                return result
 
-    # If we're still looking, we've failed and need to go back up a level and try again.                          
-    return False  # We return a success value, so False means failed. 
+    # If we're still looking, we've failed and need to go back up a level and try again.
+    print("All options at depth %d failed, going back up a step" % depth)
+    return False, None, None
 
 
 if __name__ == "__main__":
@@ -282,7 +302,6 @@ if __name__ == "__main__":
 
     # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
     # What's the best way to store them?
-
     all_word_candidates = list()
 
     for word in word_list:
@@ -302,4 +321,10 @@ if __name__ == "__main__":
     all_word_candidates.sort(key=candidatesNumOptions)
 
     # And recurse to a soltuion
-    recurseThroughAllCandidates(all_word_candidates, rubric, 0)
+    result = recurseThroughAllCandidates(all_word_candidates, rubric, 0)
+
+    if (result[0] == False) :
+        print("FAILED TO SOLVE PUZZLE")
+    else :
+        print("RESULT:")
+        showPuzzle(matrix, result[2])
