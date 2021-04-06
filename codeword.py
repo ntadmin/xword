@@ -82,6 +82,8 @@ def parse(m: tuple):
     Return results as a list of lists. Each inner list represents one word and is structured:
     [(direction, row, col), n1, n2, n3,...] where n1... is the code for the letter
 
+    NOTE: Currently assumes a square grid, and a size of 10.
+
     :param m:
     :return: word_list: list
     """
@@ -106,15 +108,15 @@ def parse(m: tuple):
                         word.append((direction, y, x), )  # If start of a word, start with direction & coordinates
                     word.append(square)  # First letter
 
-                if direction == 'down':  # flips x and y back before we reach the loop tests
-                    x, y = y, x
-
                 if square == 0 or x == 10:  # Encountered a blank space
                     if len(word) > 3:  # Then we collected a word and have come to the end of it
                         word_list.append(word)  # Add it to the list of words
                         word = list()  # Reset word
 
                     word = list()
+
+                if direction == 'down':  # flips x and y back before we reach the loop tests
+                    x, y = y, x
 
     return word_list
 
@@ -182,7 +184,7 @@ def createPotentialLetterList(startingList, word, codes):
     return newList
 
 # depth is the depth to which words have been fixed in this allWClist
-def createNewWCsortedList(startingAllWClist, letterToNumberList, depth):
+def createNewWCsortedList(startingAllWClist, letterToNumberList, depth, wordForThisDepth):
     """
     Given the currently being explores WC list andan updated number to letter
     list, remove all the words which no longer word from the candidates lists
@@ -196,18 +198,22 @@ def createNewWCsortedList(startingAllWClist, letterToNumberList, depth):
     newWClist      = list()
     newWClistBelow = list()
     myDepth = 0;
-    for word_candidates in startingAllWClist:
+    for wc in startingAllWClist:
 
         # If we've alreday got this one down to one option, simply copy
-        # it trhough to the new list
-        if myDepth <= depth :
-            newWClist.append(word_candidates.copy())
+        # it trhough to the new list of create and append the one that is being
+        # fixed to one answer
+        if myDepth < depth :
+            newWClist.append(wc.copy())
+        elif myDepth == depth:
+            newWClist.append([wc[0], wordForThisDepth])
         else :
-            # Create trimmed list for this word/answer given the new code letter list
-            newWC = findMatch(candidatesCodeNumberList(word_candidates), letterToNumberList, word_candidates[1:])
+            # Create trimmed list for this word/answer given the new code letter
+            # list
+            newWC = findMatch(candidatesCodeNumberList(wc), letterToNumberList, wc[1:])
             if newWC == None:
                 newWC = list()
-            newWC.insert(0, word_candidates[0])
+            newWC.insert(0, wc[0])
             newWClistBelow.append(newWC)
 
         myDepth = myDepth + 1
@@ -249,7 +255,7 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
         # option layer next, which is what you should do.
 
         # If not, create a fresh word_list using the new potential letters
-        all_wc_test = createNewWCsortedList(all_wc, potentialLetterList, depth)
+        all_wc_test = createNewWCsortedList(all_wc, potentialLetterList, depth, candidate)
 
         # If the word we've just put in is actually the word for the final
         # one to be solved, we have succeeded
