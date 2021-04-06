@@ -171,7 +171,7 @@ def createPotentialLetterList(startingList, word, codes):
     return newList
 
 # depth is the depth to which words have been fixed in this allWClist
-def createNewWCsortedList(startingAllWClist, updatedNumberToLetterList, depth):
+def createNewWCsortedList(startingAllWClist, letterToNumberList, depth):
     """
     Given the currently being explores WC list andan updated number to letter
     list, remove all the words which no longer word from the candidates lists
@@ -182,24 +182,26 @@ def createNewWCsortedList(startingAllWClist, updatedNumberToLetterList, depth):
     newWClist = list()
     myDepth = 0;
     for word_candidates in startingAllWClist:
-        newWC = findMatch(word_candidates[0][1:], rubric, word_candidates[1:])
+        newWC = findMatch(word_candidates[0][1:], letterToNumberList, word_candidates[1:])
         if newWC == None:
             newWC = list()
         newWC.insert(0, word_candidates[0])
-        if myDepth <= depth :
-            newWClist.append(newWC)
-        else :
-            numOpts = candidatesNumOptions(newWC)
-            if numOpts >= candidatesNumOptions(newWCList[myDepth]) :
-                newWClist.append(newWC)
-            else :
-                lookDepth = myDepth - 1
-                while numOpts < candidatesNumOptions(newWCList[lookDepth]) :
-                    lookDepth = lookDepth - 1
-                newWClist.insert(lookDepth, newWC)
-        myDepth = myDepth + 1
+        newWClist.append(newWC)
+#        if myDepth <= depth :
+#            newWClist.append(newWC)
+#        else :
+#            numOpts = candidatesNumOptions(newWC)
+#            if numOpts >= candidatesNumOptions(newWClist[myDepth]) :
+#                newWClist.append(newWC)
+#            else :
+#                lookDepth = myDepth - 1
+#                while numOpts < candidatesNumOptions(newWClist[lookDepth]) :
+#                    lookDepth = lookDepth - 1
+#                newWClist.insert(lookDepth, newWC)
+#        myDepth = myDepth + 1
     # Ideally we would do newWClist[depth:].sort() just before return but I 
     # think that is dodgy
+    newWClist[depth:].sort()
     return newWClist
 
 # Actually do the exhaustive search
@@ -232,8 +234,15 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
         all_wc_test = createNewWCsortedList(all_wc, potentialLetterList, depth)
         showAwcList(all_wc_test)
 
-        # Look at the subsequent layers (word candidates) and find one that doesn't fail.
+        # Go to the next word
         depth = depth + 1
+
+        # If that word is actually one after the number of words, we have succeeded
+        if depth == len(all_wc_test) :
+            print("Got through all the words with no failures")
+            return True
+
+        # Otherwise Look at the subsequent layers (word candidates) and find one that doesn't fail.
         success = True
         for wc in all_wc_test[depth:]:
             numCandidatesHere = candidatesNumOptions(wc)
