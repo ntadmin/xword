@@ -118,16 +118,6 @@ def parse(m: tuple):
 
     return word_list
 
-def extractWord(word: list):
-    """
-    Strip out the actual word from the combination list object [(direction, row, col), n1, n2, n3,...]
-    So select index [2] onward
-
-    :param word: list
-    :return: list
-    """
-
-    return word[2:]
 
 def findMatch(codes: list, rubric: dict, my_dictionary : list):
     """
@@ -139,7 +129,7 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     :param my_dictionary:   # Master word list to search
     :return: list           # The set of matches based on the pattern
     """
-    # Build the ReEx string
+    # Build the regex string
     r = '^'                 # Regex for start of string
     anyclue = False         # Indicates whether we know any letters yet
 
@@ -262,8 +252,6 @@ if __name__ == "__main__":
 
     with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
         my_dictionary = myfile.read().splitlines()
-
-    # breakpoint()
 
     # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
     # What's the best way to store them?
