@@ -82,7 +82,7 @@ def parse(m: tuple):
     Return results as a list of lists. Each inner list represents one word and is structured:
     [(direction, row, col), n1, n2, n3,...] where n1... is the code for the letter
 
-    NOTE: Currently assumes a square grid, and a size of 10.
+    NOTE: Currently assumes a square grid, and a size of 11x11.
 
     :param m:
     :return: word_list: list
@@ -105,7 +105,9 @@ def parse(m: tuple):
 
                 if square != 0:  # Encountered a letter
                     if len(word) == 0:
-                        word.append((direction, y, x), )  # If start of a word, start with direction & coordinates
+                        # Neil: I have put x and y the way I think they should go, but why were they the other way round?
+                        # They are now correct for accross rather than down, now I think about it.
+                        word.append((direction, x, y), )  # If start of a word, start with direction & coordinates
                     word.append(square)  # First letter
 
                 if square == 0 or x == 10:  # Encountered a blank space
@@ -117,7 +119,6 @@ def parse(m: tuple):
 
                 if direction == 'down':  # flips x and y back before we reach the loop tests
                     x, y = y, x
-
     return word_list
 
 
@@ -315,6 +316,9 @@ if __name__ == "__main__":
         if word_candidates != None:
             word_candidates.insert(0,word) # Changed so that the code sequence remains associated with the potential answers
             all_word_candidates.append(word_candidates)
+
+    print("%d words to solve found in the gride. %d appear to have macthes in the dictionary!!" % (len(word_list), len(all_word_candidates)))
+    exit()
 
     # print(*candidates)
 
