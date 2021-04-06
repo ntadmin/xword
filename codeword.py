@@ -111,16 +111,6 @@ def parse(m: tuple):
 
     return word_list
 
-def extractWord(word: list):
-    """
-    Strip out the actual word from the combination list object [(direction, row, col), n1, n2, n3,...]
-    So select index [2] onward
-
-    :param word: list
-    :return: list
-    """
-
-    return word[2:]
 
 def findMatch(codes: list, rubric: dict, my_dictionary : list):
     """
@@ -132,7 +122,7 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     :param my_dictionary:   # Master word list to search
     :return: list           # The set of matches based on the pattern
     """
-    # Build the ReEx string
+    # Build the regex string
     r = '^'                 # Regex for start of string
     anyclue = False         # Indicates whether we know any letters yet
 
@@ -156,14 +146,14 @@ def candidatesNumOptions(candidates):
 
 def createPotentialLetterList(startingList, word, codes):
     newList = startingList
-    i = 0;
+    i = 0
     for code in codes:
         newList[code] = word[i]
         i = i + 1
     return newList
 
 
-def createNewWClist(startingWClist, rubric, depth):
+def createNewWClist(startingWClist, rubric, depth):  # todo: what is a WC list?
     newWClist = list()
     for word_candidates in startingWClist:
         newWC = findMatch(word_candidates[0][1:], rubric, word_candidates[1:])
@@ -190,8 +180,6 @@ if __name__ == "__main__":
 
     with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
         my_dictionary = myfile.read().splitlines()
-
-    # breakpoint()
 
     # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
     # What's the best way to store them?
@@ -220,7 +208,8 @@ if __name__ == "__main__":
     # And now try some solutions starting with the word with the least possiblities ...
     # This is fundamentally the wrong way, but it will get us going. It should really be a
     # recursive function.
-    letterListToDate = rubric
+    # Note use of rubric.copy() - previous version set new object as the same so changes to it affected parent.
+    letterListToDate = rubric.copy()
 
     # how deep into the word list (ie how far into all_word_candidates have we fixed
     # (potentially) a candidate word
@@ -249,6 +238,7 @@ if __name__ == "__main__":
                 elif numCandidatesHere == 1:
                     print("This has a one option outcome, and so should positively be recursed into (but that's not coded yet")
                     soloOption = True
+                    # todo: I think here we add the new letters to the rubric, because this must be correct?
                     # don't break out of loop - failed trumps soloOption (I think, but they should never happen together. hmmm)
                           
             print("No code to do cleverer stuff, so just trying the next option for this level.")
