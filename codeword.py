@@ -157,29 +157,94 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
         return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
 
-def candidatesNumOptions(candidates):
-    return len(candidates) - 1
+def candidatesNumOptionsPlusOneGOBACKTONUMOPTS(candidates):
+    return len(candidates)
 
 
 def createPotentialLetterList(startingList, word, codes):
-    newList = startingList
+    newList = startingList # Python question: does this actuaklly create a new copy?
     i = 0;
     for code in codes:
         newList[code] = word[i]
         i = i + 1
     return newList
 
-
-def createNewWClist(startingWClist, rubric, depth):
+# depth is the depth to which words have been fixed in this allWClist
+def createNewWCsortedList(startingAllWClist, rubric, depth):
     newWClist = list()
-    for word_candidates in startingWClist:
+    myDepth = 0;
+    for word_candidates in startingAllWClist:
         newWC = findMatch(word_candidates[0][1:], rubric, word_candidates[1:])
-        if newWC != None:
-            newWC.insert(0, word_candidates[0])
-        else:
+        if newWC == None:
             newWC = list()
-        newWClist.append(newWC)
+        newWC.insert(0, word_candidates[0])
+        if myDepth <= depth :
+            newWClist.append(newWC)
+        else :
+            numOptsPlusOne = candidatesNumOptionsPlusOne(newWC)
+            if (numOptsPlusOne >= candidatesNumOptionsPlusOne(newWCList[myDepth]) :
+                newWClist.append(newWC)
+            else :
+                lookDepth = myDepth - 1
+                while numOptsPlusOne < candidatesNumOptionsPlusOne(newWCList[lookDepth])
+                    lookDepth = lookDepth - 1
+                newWClist.insert(lookDepth, newWC)
+        myDepth = myDepth + 1
+    # Ideally we would do newWClist[depth:].sort() just before return but I 
+    # think that is dodgy
     return newWClist
+
+# Actually do the exhaustive search
+# 
+# depth: the first call will have this at 0 meaning that the start
+#        all_word_candidates list has beed created and sorted but no
+#        examinstaion of it has been done
+# letterList: the letter list currently being used / evaluated.
+# wc: the 
+def recurseThroughAllCandidates(all_wc, letterList, depth):
+    print("===== Ordered list incoming =====")
+    print("Depth " + depth)
+    showAwcList(wc)
+    
+    # Try all the words this answer might be for the current scenario
+    for candidate in all_wc[depth][1:]:
+        print("\nTrying %s for word %s\nGives:" % (candidate, word_candidates[0]))
+        potentialLetterList = createPotentialLetterList(letterList, candidate, word_candidates[0][1:])
+
+        # Now, that letter list is be applied to all the words (one at a time) that
+        # are after this one. If any of them then gives a zero option, it means that
+        # this substitutaion has failed. If it hasn't succeeded, keep digging deeper.
+        
+        # In principle, if one of them gives one option, it means we have a definite
+        # part of the answer. But we still have to flesh it out, and by having the
+        # candidates in order of number of solutions, we must then explore a single
+        # option layer next, which is what you should do.
+
+        # Create a fresh word_list using the new potential letters
+        all_wc_test = createNewWCsortedList(all_wc, potentialLetterList, depth)
+        showAwcList(all_wc_test)
+
+        # Look at the subsequent layers (word candidates) and find one that doesn't fail.
+        depth = depth + 1
+        success = True
+        for wc in all_wc_test[depth:]:
+            numCandidatesHere = len(wc[1:])
+            if numCandidatesHere == 0:
+                print("That's a fail - at least one zero option results")
+                success = False
+                break
+
+        if success == True:
+            # We can recurse, but the number of options will have changed,
+            # So we need to resort and recurse
+            success = recurseThroughAllCandidates(all_wc_test, potentialLetterList, depth)
+
+        if success == True:
+            print ("GOT IT")
+            exit()
+
+    # If we're still looking, we've failed and need to go back up a level and try again.                          
+    return False  # We return a success value, so False means failed. 
 
 
 if __name__ == "__main__":
@@ -219,50 +284,7 @@ if __name__ == "__main__":
     #     print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(len(word_candidates) - 1)))
 
     # order by number of possible solutions
-    all_word_candidates.sort(key=candidatesNumOptions)
-    print("=== Ordered list ===")
-    showAwcList(all_word_candidates)
-    
+    all_word_candidates.sort(key=candidatesNumOptionsPlusOne)
 
-    # And now try some solutions starting with the word with the least possiblities ...
-    # This is fundamentally the wrong way, but it will get us going. It should really be a
-    # recursive function.
-    letterListToDate = rubric
-
-    # how deep into the word list (ie how far into all_word_candidates have we fixed
-    # (potentially) a candidate word
-    depth = 0
-    for word_candidates in all_word_candidates:
-        depth = depth + 1
-        for candidate in word_candidates[1:]:
-            print("\nTrying %s for word %s\nGives:" % (candidate, word_candidates[0]))
-            potentialLetterList = createPotentialLetterList(letterListToDate, candidate, word_candidates[0][1:])
-
-            # Now, that list should be applied to all the words (one at a time) that are after this one.
-            # If any of them give a zero option, it has failed. If one of them gives one option, it has
-            # succeeded. If neither, either try antoher top level option, or go down to the next word.
-
-            # Create a fresh word_list using the new potential letters
-            all_wc_test = createNewWClist(all_word_candidates, potentialLetterList, depth)
-            showAwcList(all_wc_test)
-            failed = False
-            soloOption = False
-            for wc in all_wc_test[depth:]:
-                numCandidatesHere = len(wc[1:])
-                if numCandidatesHere == 0:
-                    print("That's a fail - at least one zero option results")
-                    failed = True
-                    break
-                elif numCandidatesHere == 1:
-                    print("This has a one option outcome, and so should positively be recursed into (but that's not coded yet")
-                    soloOption = True
-                    # don't break out of loop - failed trumps soloOption (I think, but they should never happen together. hmmm)
-                          
-            print("No code to do cleverer stuff, so just trying the next option for this level.")
-
-        # Complete hack to stop it after trying all the options for the first word at the moment.
-        if depth == 1:
-            exit()
-            
-
-
+    # And recurse to a soltuion
+    recurseThroughAllCandidates(all_word_candidates, rubric, 0)
