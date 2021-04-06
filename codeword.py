@@ -11,6 +11,11 @@ import re, os
 # Set the puzzle, at present a hand encoded version of a sample puzzle.
 # Ideally this will somehow aut import a puzzled from a puzzle source and encode it.
 
+# A few of "constants" for use in laying out a puzzle
+# If it 
+SQ_BLOCK =  0 # A blocked square that never has anything in it.
+SQ_UNSET = -1 # Awaiting a letter but with no hint as to what that letter is.
+# If it's not one of those, it will be a number between 1 and 26, and it's a codeword
 
 def setPuzzle():
     """
@@ -19,17 +24,17 @@ def setPuzzle():
     """
     matrix = tuple()  # This will be a tuple of tuples to hold the original puzzle set
 
-    matrix += ((0, 25, 0, 21, 0, 4, 0, 8, 0, 17, 0),)
-    matrix += ((12, 22, 13, 8, 18, 8, 0, 18, 2, 13, 8),)
-    matrix += ((0, 14, 0, 24, 0, 21, 0, 22, 0, 22, 0),)
-    matrix += ((5, 13, 26, 20, 0, 16, 20, 9, 13, 7, 13),)
-    matrix += ((0, 7, 0, 5, 0, 20, 0, 3, 0, 0, 9),)
-    matrix += ((20, 16, 22, 0, 0, 0, 0, 0, 21, 17, 3),)
-    matrix += ((17, 0, 0, 8, 0, 23, 0, 1, 0, 21, 0),)
-    matrix += ((9, 21, 10, 11, 4, 20, 0, 10, 21, 3, 18),)
-    matrix += ((0, 18, 0, 4, 0, 8, 0, 13, 0, 3, 0),)
-    matrix += ((7, 22, 6, 21, 0, 18, 21, 25, 17, 20, 18),)
-    matrix += ((0, 9, 0, 18, 0, 19, 0, 8, 0, 15, 0),)
+    matrix += ((SQ_BLOCK, 25, SQ_BLOCK, 21, SQ_BLOCK,  4, SQ_BLOCK,  8, SQ_BLOCK, 17, SQ_BLOCK),)
+    matrix += ((12,       22, 13,        8, 18,        8, SQ_BLOCK, 18, 2,        13,  8),)
+    matrix += ((SQ_BLOCK, 14, SQ_BLOCK, 24, SQ_BLOCK, 21, SQ_BLOCK, 22, SQ_BLOCK, 22, SQ_BLOCK),)
+    matrix += ((5,        13, 26,       20, SQ_BLOCK, 16, 20,        9, 13,        7, 13),)
+    matrix += ((SQ_BLOCK,  7, SQ_BLOCK,  5, SQ_BLOCK, 20, SQ_BLOCK,  3, SQ_BLOCK, SQ_BLOCK, 9),)
+    matrix += ((20,       16, 22, SQ_BLOCK, SQ_BLOCK, SQ_BLOCK, SQ_BLOCK, 0,  21, 17,  3),)
+    matrix += ((17, SQ_BLOCK, SQ_BLOCK,  8, SQ_BLOCK, 23, SQ_BLOCK,  1, SQ_BLOCK, 21, SQ_BLOCK),)
+    matrix += ((9,        21, 10,       11, 4,        20, SQ_BLOCK, 10, 21,        3, 18),)
+    matrix += ((SQ_BLOCK, 18, SQ_BLOCK,  4, SQ_BLOCK,  8, SQ_BLOCK, 13, SQ_BLOCK,  3, SQ_BLOCK),)
+    matrix += ((7,        22, 6,        21, SQ_BLOCK, 18, 21,       25, 17,       20, 18),)
+    matrix += ((SQ_BLOCK,  9, SQ_BLOCK, 18, SQ_BLOCK, 19, SQ_BLOCK,  8, SQ_BLOCK, 15, SQ_BLOCK),)
 
     return matrix
 
@@ -42,14 +47,14 @@ def showPuzzle(matrix, knownLetters):
         print("+--"*len(row),end="+\n")
         print(end="|")
         for element in row:
-            if element == 0:
+            if element == SQ_BLOCK:
                 print("XX", end="|")
             else:
                 print(f"{element:2d}", end="|")
         print()
         print(end="|")
         for element in row:
-            if element == 0:
+            if element == SQ_BLOCK:
                 print("XX", end="|")
             else:
                 letter = knownLetters.get(element)
@@ -202,7 +207,7 @@ def createNewWCsortedList(startingAllWClist, letterToNumberList, depth, wordForT
     for wc in startingAllWClist:
 
         # If we've alreday got this one down to one option, simply copy
-        # it trhough to the new list of create and append the one that is being
+        # it trhough to the new list or create and append the one that is being
         # fixed to one answer
         if myDepth < depth :
             newWClist.append(wc.copy())
@@ -219,7 +224,7 @@ def createNewWCsortedList(startingAllWClist, letterToNumberList, depth, wordForT
 
         myDepth = myDepth + 1
 
-    # Sort the below list
+    # Sort the below list and then append all of its entries to the result
     newWClistBelow.sort(key=candidatesNumOptions)
     newWClist.extend(newWClistBelow)
 
@@ -229,13 +234,13 @@ def createNewWCsortedList(startingAllWClist, letterToNumberList, depth, wordForT
 # 
 # depth: the first call will have this at 0 meaning that the start
 #        all_word_candidates list has beed created and sorted but no
-#        examinstaion of it has been done
+#        examinataion of it has been done
 # letterList: the letter list currently being used / evaluated.
 # all_wc: the collection of word clues and current options being explored.
 #
 # return three pieces of information:
 # On Failure (False, None, None)
-# On success (True, solved list of Word candidates (ie one ancswer each), number fo letter list)
+# On success (True, solved list of Word candidates (ie one ancswer each), number to letter list)
 def recurseThroughAllCandidates(all_wc, letterList, depth):
     print("===== Ordered list incoming at depth %d =====" % depth)
     showAwcList(all_wc)
@@ -248,25 +253,28 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
 
         # Now, that letter list is be applied to all the words (one at a time) that
         # are after this one. If any of them then gives a zero option, it means that
-        # this substitutaion has failed. If it hasn't succeeded, keep digging deeper.
+        # this substitutaion has failed. If it hasn't failed, keep digging deeper.
         
-        # In principle, if one of them gives one option, it means we have a definite
-        # part of the answer. But we still have to flesh it out, and by having the
-        # candidates in order of number of solutions, we must then explore a single
-        # option layer next, which is what you should do.
+        # You might thinkg that if one of them gives one option, it means we have
+        # a definite
+        # part of the answer. But that's not the case. It might only have one answer
+        # because of a previous but wrong substitution. The sorting means that we will
+        # dive down the "single option" levels quickly and see if when we make those
+        # substitutions they provide options for lower levles. Or not.
 
-        # If not, create a fresh word_list using the new potential letters
+        # Create a fresh word_list using the new potential letters
         all_wc_test = createNewWCsortedList(all_wc, potentialLetterList, depth, candidate)
 
         # If the word we've just put in is actually the word for the final
-        # one to be solved, we have succeeded
+        # one to be solved, we have succeeded (but we did have to put it in, hence this
+        # is after the line above.)
         if depth == len(all_wc) - 1:
             print("Got to the last word in the puzzle with no failures")
             print(potentialLetterList)
             return True, all_wc_test, potentialLetterList
 
-
-        # Otherwise Look at the subsequent layers (word candidates) and find one that doesn't fail.
+        # Otherwise Look at the subsequent layers (word candidates) and
+        # find one that doesn't fail.
         success = True
         for wc in all_wc_test[depth + 1:]:
             numCandidatesHere = candidatesNumOptions(wc)
@@ -276,8 +284,7 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
                 break
 
         if success == True:
-            # We can recurse, but the number of options will have changed,
-            # So we need to resort and recurse
+            # All the lower levels have at least one option, so let's explore them
             print("Going deeper")
             result = recurseThroughAllCandidates(all_wc_test, potentialLetterList, depth + 1)
             success = result[0]
@@ -286,7 +293,8 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
                 print("Passing success back up the line")
                 return result
 
-    # If we're still looking, we've failed and need to go back up a level and try again.
+    # If we get here, we've failed to find a valid word for this level
+    # and so we need to go back up a level and try again.
     print("All options at depth %d failed, going back up a step" % depth)
     return False, None, None
 
