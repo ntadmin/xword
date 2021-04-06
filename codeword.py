@@ -152,7 +152,7 @@ def candidatesNumOptions(candidates):
 
 
 def createPotentialLetterList(startingList, word, codes):
-    newList = startingList # Python question: does this actuaklly create a new copy?
+    newList = startingList.copy()
     i = 0;
     for code in codes:
         newList[code] = word[i]
@@ -193,8 +193,8 @@ def createNewWCsortedList(startingAllWClist, rubric, depth):
 # wc: the 
 def recurseThroughAllCandidates(all_wc, letterList, depth):
     print("===== Ordered list incoming =====")
-    print("Depth " + depth)
-    showAwcList(wc)
+    print("Depth ", depth)
+    showAwcList(all_wc)
     
     # Try all the words this answer might be for the current scenario
     for candidate in all_wc[depth][1:]:
