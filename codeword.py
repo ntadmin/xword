@@ -148,10 +148,21 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
 
 
 def candidatesNumOptions(candidates):
+    """
+    Given the candidtaes list for a particular answer, return the number
+    of words listed as fitting.
+    """
     return len(candidates) - 1
 
 
 def createPotentialLetterList(startingList, word, codes):
+    """
+    Give a starting number to letter list (startingList) a word (word)
+    and the letters codes (cdoes) for ech letter of that word create a new
+    number to letter list.
+    Assumes that word and codeas are of the same length and that if there
+    are duplicate numbers / letters they match,
+    """
     newList = startingList.copy()
     i = 0;
     for code in codes:
@@ -160,7 +171,14 @@ def createPotentialLetterList(startingList, word, codes):
     return newList
 
 # depth is the depth to which words have been fixed in this allWClist
-def createNewWCsortedList(startingAllWClist, rubric, depth):
+def createNewWCsortedList(startingAllWClist, updatedNumberToLetterList, depth):
+    """
+    Given the currently being explores WC list andan updated number to letter
+    list, remove all the words which no longer word from the candidates lists
+    and put the resutls in a fresh WC list, sorted so that layer up to depth
+    retain their current order (they should be 1 by definition, and should keep
+    recursion order), lower ayer reordered to have lowest number of options first.
+    """
     newWClist = list()
     myDepth = 0;
     for word_candidates in startingAllWClist:
