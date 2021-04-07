@@ -137,6 +137,14 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     :param my_dictionary:   # Master word list to search
     :return: list           # The set of matches based on the pattern
     """
+    # build the match for letters which are not known - they can be any letter
+    # except an already used one. The brackets make it a capture group, so
+    # so repeats can be used to reduce further search space.
+    unknown_r  = '([^'
+    for letter in rubric.values() :
+        unknown_r += letter
+    unknown_r += '])'
+    
     # Build the regex string
     r = '^'                 # Regex for start of string
     anyclue = False         # Indicates whether we know any letters yet
@@ -147,9 +155,11 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
             r += letter
             anyclue = True
         else:
-            r += '.'        # Regex for any single character
+            r += unknown_r        # Regex for any single not already claimed character
 
     r += "$"                # Regex for end of string
+    
+    print("findMatch regex in use:" + r)
 
     return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
