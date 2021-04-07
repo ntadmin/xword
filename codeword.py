@@ -6,7 +6,7 @@
 # John Clarke, john@johnclarke.net
 # V0.1 2021-03-30
 
-import re, os
+import re, os, time
 
 # Set the puzzle, at present a hand encoded version of a sample puzzle.
 # Ideally this will somehow aut import a puzzled from a puzzle source and encode it.
@@ -67,8 +67,16 @@ def showPuzzle(matrix, knownLetters):
     
 
 def showAwcList(wcList):
+    depth = 0
     for word_candidates in wcList:
-        print("Word %s has %s possible solutions" % (word_candidates[0], "{:,}".format(candidatesNumOptions(word_candidates))))
+        numOpts = candidatesNumOptions(word_candidates)
+        print("%2d Word %s has %s option%s (first: %s)" %
+              (depth,
+               word_candidates[0],
+               "{:,}".format(numOpts),
+               '' if numOpts == 1 else 's',
+               "----" if numOpts == 0 else word_candidates[1]))
+        depth = depth + 1
  
 
 # =============== Extract words ===============
@@ -144,6 +152,9 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
     for letter in rubric.values() :
         unknown_r += letter
     unknown_r += '])'
+
+    # Keep a track of the unkonwns already seen
+    seen_unknowns = list()
     
     # Build the regex string
     r = '^'                 # Regex for start of string
@@ -155,11 +166,17 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
             r += letter
             anyclue = True
         else:
-            r += unknown_r        # Regex for any single not already claimed character
+            if seen_unknowns.count(code) == 0 :
+                # Haven't seen this number yet, so it is unknown, and won't
+                # have previously been macthed
+                r += unknown_r
+                seen_unknowns.append(code)
+            else :
+                # This unknown is the saem as a previous unkown, so match to
+                # whatever that macthed to.
+                r += "\\{}".format(seen_unknowns.index(code)+1)
 
     r += "$"                # Regex for end of string
-    
-    print("findMatch regex in use:" + r)
 
     return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
@@ -278,8 +295,7 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
         # one to be solved, we have succeeded (but we did have to put it in, hence this
         # is after the line above.)
         if depth == len(all_wc) - 1:
-            print("Got to the last word in the puzzle with no failures")
-            print(potentialLetterList)
+            print("Got to the last word in the puzzle with no failures = SUCCESS")
             return True, all_wc_test, potentialLetterList
 
         # Otherwise Look at the subsequent layers (word candidates) and
@@ -299,7 +315,6 @@ def recurseThroughAllCandidates(all_wc, letterList, depth):
             success = result[0]
 
             if success == True:
-                print("Passing success back up the line")
                 return result
 
     # If we get here, we've failed to find a valid word for this level
@@ -324,6 +339,7 @@ if __name__ == "__main__":
     with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
         my_dictionary = myfile.read().splitlines()
 
+    start1 = time.time()
     # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
     # What's the best way to store them?
     all_word_candidates = list()
@@ -346,11 +362,19 @@ if __name__ == "__main__":
     # order by number of possible solutions
     all_word_candidates.sort(key=candidatesNumOptions)
 
+    start2 = end1 = time.time()
+
     # And recurse to a soltuion
     result = recurseThroughAllCandidates(all_word_candidates, rubric, 0)
+
+    end2 = time.time()
 
     if (result[0] == False) :
         print("FAILED TO SOLVE PUZZLE")
     else :
         print("RESULT:")
         showPuzzle(matrix, result[2])
+        #and a sorted version of the number to letter result:
+        print({k: result[2][k] for k in sorted(result[2].keys())})
+        print("Parsing and getting first long list of word options: ", end1 - start1)
+        print("Rescursion / solving: ", end2 - start2)
