@@ -151,8 +151,7 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
 
     r += "$"                # Regex for end of string
 
-    if anyclue == True:
-        return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
+    return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
 
 # ======== A few access fucntions giving easy access tot he infromation stored
 #
@@ -321,12 +320,11 @@ if __name__ == "__main__":
 
     for word in word_list:
         word_candidates = findMatch(word[1:], rubric, my_dictionary)
-        if word_candidates != None:
-            word_candidates.insert(0,word) # Changed so that the code sequence remains associated with the potential answers
-            all_word_candidates.append(word_candidates)
-
-    print("%d words to solve found in the gride. %d appear to have macthes in the dictionary!!" % (len(word_list), len(all_word_candidates)))
-    exit()
+        if len(word_candidates) == 0 :
+            print("One of the words has no options at all before even starting. Stopping now.")
+            exit()
+        word_candidates.insert(0,word) # Changed so that the code sequence remains associated with the potential answers
+        all_word_candidates.append(word_candidates)
 
     # print(*candidates)
 
