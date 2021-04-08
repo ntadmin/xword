@@ -77,6 +77,26 @@ def showAwcList(wcList):
                '' if numOpts == 1 else 's',
                "----" if numOpts == 0 else word_candidates[1]))
         depth = depth + 1
+
+def showLetterCode(letterCode):
+    print("+--"*13,end="+\n")
+    for j in [0,13] :
+        print(end="|")
+        for i in range(1,14) :
+            print(f"{j+i:2d}", end="|")
+        print()
+        print(end="|")
+        for i in range(1,14) :
+            letter = letterCode.get(j+i)
+            if letter == None:
+                letter = '  '
+            else:
+                letter = ' '+letter.capitalize()
+            print(letter,end="|")
+        print()
+        print("+--"*13,end="+\n")
+    
+
  
 
 # =============== Extract words ===============
@@ -375,6 +395,7 @@ if __name__ == "__main__":
         print("RESULT:")
         showPuzzle(matrix, result[2])
         #and a sorted version of the number to letter result:
-        print({k: result[2][k] for k in sorted(result[2].keys())})
+        showLetterCode(result[2]);
+#        print({k: result[2][k] for k in sorted(result[2].keys())})       
         print("Parsing and getting first long list of word options: ", end1 - start1)
         print("Rescursion / solving: ", end2 - start2)
