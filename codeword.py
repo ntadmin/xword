@@ -78,6 +78,7 @@ def showAwcList(wcList):
                "----" if numOpts == 0 else word_candidates[1]))
         depth = depth + 1
 
+
 def showLetterCode(letterCode):
     print("+--"*13,end="+\n")
     for j in [0,13] :
@@ -95,7 +96,6 @@ def showLetterCode(letterCode):
             print(letter,end="|")
         print()
         print("+--"*13,end="+\n")
-    
 
  
 
@@ -192,7 +192,7 @@ def findMatch(codes: list, rubric: dict, my_dictionary : list):
                 r += unknown_r
                 seen_unknowns.append(code)
             else :
-                # This unknown is the saem as a previous unkown, so match to
+                # This unknown is the same as a previous unkown, so match to
                 # whatever that macthed to.
                 r += "\\{}".format(seen_unknowns.index(code)+1)
 
@@ -217,6 +217,11 @@ def candidatesCodeNumberList(candidates):
     """
     return candidates[0][1:]
 
+def answerLength(answer):
+    """
+    Give the length of the answer/word for a word/answer in the puzzle
+    """
+    return len(answer) - 1
 
 # ======= More hard core stuff ========
 
@@ -364,8 +369,15 @@ if __name__ == "__main__":
     # What's the best way to store them?
     all_word_candidates = list()
 
+    dictionary_by_word_length = dict()
     for word in word_list:
-        word_candidates = findMatch(word[1:], rubric, my_dictionary)
+        wordLength = answerLength(word)
+        dictionary_subset = dictionary_by_word_length.get(wordLength)
+        if dictionary_subset == None :
+            r = "^" + "."*wordLength + "$"
+            dictionary_subset = list(filter(lambda x : re.match(r, x) != None, my_dictionary))
+            dictionary_by_word_length[wordLength] = dictionary_subset
+        word_candidates = findMatch(word[1:], rubric, dictionary_subset)
         if len(word_candidates) == 0 :
             print("One of the words has no options at all before even starting. Stopping now.")
             exit()
