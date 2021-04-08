@@ -408,6 +408,5 @@ if __name__ == "__main__":
         showPuzzle(matrix, result[2])
         #and a sorted version of the number to letter result:
         showLetterCode(result[2]);
-#        print({k: result[2][k] for k in sorted(result[2].keys())})       
         print("Parsing and getting first long list of word options: ", end1 - start1)
         print("Rescursion / solving: ", end2 - start2)
