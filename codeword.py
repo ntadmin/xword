@@ -38,7 +38,9 @@ def setPuzzle():
     matrix += ((7,        22, 6,        21, SQ_BLOCK, 18, 21,       25, 17,       20, 18),)
     matrix += ((SQ_BLOCK,  9, SQ_BLOCK, 18, SQ_BLOCK, 19, SQ_BLOCK,  8, SQ_BLOCK, 15, SQ_BLOCK),)
 
-    return matrix
+    rubric = {22 : 'o', 10 : 'r', 3 : 'p'}      # Note to add to a dictionary, use rubric[n] = 'x'
+
+    return matrix, rubric
 
 # ============ Put stuff on the screen ==========
 # 
@@ -134,8 +136,64 @@ class WordToSolve:
 
     def numberOfCandidates(self):
         return self.numberCandidateWords
-    
 
+    # finds the matches for this wordInCode, from within the supplied list, or it's own if none provided
+    # it then updteas its list to the new collection of candidate words.
+    # KNOWN ISSUE: The inital lists above have not culled candidate words which allocate the same letter to different numbers.
+    def updateCandidateList(self, rubric, newCandidateWordsList=None):
+        if newCandidateWordsList == None:
+            newCandidateWordsList = self.candidateWordsList
+        if newCandidateWordsList == None:
+            print("WordToSolve.updateMatched FAIL - no wordlist to select word from")
+            return
+
+        # build the match for letters which are not known - they can be any letter
+        # except an already used one. The brackets make it a capture group, so
+        # so repeats can be used to reduce further search space.
+        unknown_r  = '([^'
+        for letter in rubric.values() :
+            unknown_r += letter
+        unknown_r += '])'
+
+        # Keep a track of the unkonwns already seen
+        seen_unknowns = list()
+    
+        # Build the regex string
+        r = '^'                 # Regex for start of string
+        anyclue = False         # Indicates whether we know any letters yet
+
+        for code in self.wordInCode:      # Each code number in the codes list
+            letter = rubric.get(code)       # Return any matches from the rubric dictionary (if we know the code)
+            if letter != None:
+                r += letter
+                anyclue = True
+            else:
+                if seen_unknowns.count(code) == 0 :
+                    # Haven't seen this number yet, so it is unknown, and won't
+                    # have previously been macthed
+                    r += unknown_r
+                    seen_unknowns.append(code)
+                else :
+                    # This unknown is the same as a previous unkown, so match to
+                    # whatever that macthed to.
+                    r += "\\{}".format(seen_unknowns.index(code)+1)
+
+        r += "$"                # Regex for end of string
+
+        print("r for", self.wordInCode, " is ", r)
+
+        self.setCandidateWordsList(list(filter(lambda x : re.match(r, x) != None, newCandidateWordsList)))
+
+        
+
+#
+# Probably the structure shoulkd then become
+#
+# class xWord - is given a list of wordToSolve and s starting rubric (and an overall
+#               dictionary if individual ones aren't supplied per wordToSolve) and
+#               retuns all the solution rubrics
+#
+# class CodeWord - is given grid, startig rubric, and dictionary and returns all the solution rubrics.
 
 # =============== Extract words ===============
 
@@ -199,69 +257,6 @@ def parse(m: tuple):
     return wordToSolveList
 
 
-def findMatch(codes: list, rubric: dict, my_dictionary : list):
-    """
-    Return a list of possible matches for a given partial string. The input (codes) is a list of integers,
-    each corresponding to a letter. Only some of the codes are known: these are defined by the input dict dictionary.
-    The function will construct a RegEx string and apply it to
-    :param codes: list      # The code list
-    :param rubric: dict     # The set of known codes and corresponding letters
-    :param my_dictionary:   # Master word list to search
-    :return: list           # The set of matches based on the pattern
-    """
-    # build the match for letters which are not known - they can be any letter
-    # except an already used one. The brackets make it a capture group, so
-    # so repeats can be used to reduce further search space.
-    unknown_r  = '([^'
-    for letter in rubric.values() :
-        unknown_r += letter
-    unknown_r += '])'
-
-    # Keep a track of the unkonwns already seen
-    seen_unknowns = list()
-    
-    # Build the regex string
-    r = '^'                 # Regex for start of string
-    anyclue = False         # Indicates whether we know any letters yet
-
-    for code in codes:      # Each code number in the codes list
-        letter = rubric.get(code)       # Return any matches from the rubric dictionary (if we know the code)
-        if letter != None:
-            r += letter
-            anyclue = True
-        else:
-            if seen_unknowns.count(code) == 0 :
-                # Haven't seen this number yet, so it is unknown, and won't
-                # have previously been macthed
-                r += unknown_r
-                seen_unknowns.append(code)
-            else :
-                # This unknown is the same as a previous unkown, so match to
-                # whatever that macthed to.
-                r += "\\{}".format(seen_unknowns.index(code)+1)
-
-    r += "$"                # Regex for end of string
-
-    print("r for", codes, " is ", r)
-
-    return list(filter(lambda x : re.match(r, x) != None, my_dictionary))
-
-# ======== A few access fucntions giving easy access tot he infromation stored
-#
-# in the list for an answer/word
-
-def candidatesNumOptions(candidates):
-    """
-    Given the candidtaes list for a particular answer, return the number
-    of words listed as fitting.
-    """
-    return len(candidates) - 1
-
-def answerLength(answer):
-    """
-    Give the length of the answer/word for a word/answer in the puzzle
-    """
-    return len(answer) - 1
 
 # ======= More hard core stuff ========
 
@@ -309,7 +304,8 @@ def createNewWCsortedList(startingWordToSolveList, letterToNumberList, depth, wo
         else :
             # Create trimmed list for this word/answer given the new code letter
             # list
-            copyWTS.setCandidateWordsList(findMatch(wts.wordInCode, letterToNumberList, wts.candidateWordsList))
+            copyWTS.updateCandidateList(letterToNumberList)
+#            copyWTS.setCandidateWordsList(findMatch(wts.wordInCode, letterToNumberList, wts.candidateWordsList))
             newWTSlistBelow.append(copyWTS)
 
         myDepth = myDepth + 1
@@ -387,24 +383,16 @@ def recurseThroughAllCandidates(wordToSolveList, letterList, depth):
     return False, None, None
 
 
-if __name__ == "__main__":
-
-    matrix = setPuzzle()
+def solveCodeWord(matrix, rubric, dictionary):
 
     wordToSolveList = parse(matrix)
 
     for wtc in wordToSolveList:
         wtc.show()
 
-    rubric = {22 : 'o', 10 : 'r', 3 : 'p'}      # Note to add to a dictionary, use rubric[n] = 'x'
-
     # Show starting position
     showPuzzle(matrix, rubric)
 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-
-    with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
-        my_dictionary = myfile.read().splitlines()
 
     start1 = time.time()
     # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
@@ -412,7 +400,6 @@ if __name__ == "__main__":
     dictionary_by_word_length = dict()
 
     # Create the initial list of allowed words for each word if it hasn;t been given.
-    # KNOWN ISSUE: The inital lists above have nt culled words which allocate the same letter to different numbers.
     for wts in wordToSolveList:
         if wts.candidateWordsList == None:
             dictionary_subset = dictionary_by_word_length.get(wts.length)
@@ -420,11 +407,10 @@ if __name__ == "__main__":
                 r = "^" + "."*wts.length + "$"
                 dictionary_subset = list(filter(lambda x : re.match(r, x) != None, my_dictionary))
                 dictionary_by_word_length[wts.length] = dictionary_subset
-            word_candidates = findMatch(wts.wordInCode, rubric, dictionary_subset)
-            if len(word_candidates) == 0 :
+            wts.updateCandidateList(rubric, dictionary_subset)
+            if wts.numberOfCandidates() == 0 :
                 print("One of the words has no options at all before even starting. Stopping now.")
                 exit()
-            wts.setCandidateWordsList(word_candidates)
 
     # order by number of possible solutions
     wordToSolveList.sort(key=WordToSolve.numberOfCandidates)
@@ -436,6 +422,23 @@ if __name__ == "__main__":
 
     end2 = time.time()
 
+    print("Parsing and getting first long list of word options: ", end1 - start1)
+    print("Rescursion / solving: ", end2 - start2)
+
+    return result
+
+
+if __name__ == "__main__":
+
+    matrix, rubric = setPuzzle()
+
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
+        my_dictionary = myfile.read().splitlines()
+
+    result = solveCodeWord(matrix, rubric, my_dictionary)
+
     if (result[0] == False) :
         print("FAILED TO SOLVE PUZZLE")
     else :
@@ -443,5 +446,4 @@ if __name__ == "__main__":
         showPuzzle(matrix, result[2])
         #and a sorted version of the number to letter result:
         showLetterCode(result[2]);
-        print("Parsing and getting first long list of word options: ", end1 - start1)
-        print("Rescursion / solving: ", end2 - start2)
+
