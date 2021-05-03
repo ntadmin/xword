@@ -68,19 +68,6 @@ def showPuzzle(matrix, knownLetters):
     print("+--"*len(row),end="+\n")
     
 
-def showAwcList(wcList):
-    depth = 0
-    for wts in wcList:
-        numOpts = wts.numberCandidateWords
-        print("%2d Word %s has %s option%s (first: %s)" %
-              (depth,
-               wts.string(),
-               "{:,}".format(numOpts),
-               '' if numOpts == 1 else 's',
-               "----" if numOpts == 0 else wts.candidateWordsList[0]))
-        depth = depth + 1
-
-
 def showLetterCode(letterCode):
     print("+--"*13,end="+\n")
     for j in [0,13] :
@@ -122,6 +109,18 @@ class WordToSolve:
     def show(self):
         print(self.string())
 
+    def showList(wtsList):
+        depth = 0
+        for wts in wtsList:
+            numOpts = wts.numberCandidateWords
+            print("%2d Word %s has %s option%s (first: %s)" %
+              (depth,
+               wts.string(),
+               "{:,}".format(numOpts),
+               '' if numOpts == 1 else 's',
+               "----" if numOpts == 0 else wts.candidateWordsList[0]))
+            depth = depth + 1
+
     def copy(self):
         return WordToSolve(self.posX, self.posY, self.direction, self.wordInCode, self.candidateWordsList)
 
@@ -136,10 +135,6 @@ class WordToSolve:
     def numberOfCandidates(self):
         return self.numberCandidateWords
     
-
-class CollectionOfWordsToSolve:
-    def __init__(self, wordsToSolveList):
-        self.wordsToSolveList = wordsToSolveList.copy()
 
 
 # =============== Extract words ===============
@@ -338,7 +333,7 @@ def createNewWCsortedList(startingWordToSolveList, letterToNumberList, depth, wo
 # On success (True, solved list of Word candidates (ie one ancswer each), number to letter list)
 def recurseThroughAllCandidates(wordToSolveList, letterList, depth):
     print("===== Ordered list incoming at depth %d =====" % depth)
-    showAwcList(wordToSolveList)
+    WordToSolve.showList(wordToSolveList)
     
     # Try all the words this answer might be for the current scenario
     wordToSolve = wordToSolveList[depth]
