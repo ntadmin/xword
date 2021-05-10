@@ -39,54 +39,12 @@ def setPuzzle():
     matrix += ((SQ_BLOCK,  9, SQ_BLOCK, 18, SQ_BLOCK, 19, SQ_BLOCK,  8, SQ_BLOCK, 15, SQ_BLOCK),)
 
     rubric = {22 : 'o', 10 : 'r', 3 : 'p'}      # Note to add to a dictionary, use rubric[n] = 'x'
+    # Use this verions if you want to make it hunt harder.
+#    rubric = {}      # Note to add to a dictionary, use rubric[n] = 'x'
 
     return matrix, rubric
 
-# ============ Put stuff on the screen ==========
-# 
-# A couple of functions to output the state of play.
 
-def showPuzzle(matrix, knownLetters):
-    for row in matrix:
-        print("+--"*len(row),end="+\n")
-        print(end="|")
-        for element in row:
-            if element == SQ_BLOCK:
-                print("XX", end="|")
-            else:
-                print(f"{element:2d}", end="|")
-        print()
-        print(end="|")
-        for element in row:
-            if element == SQ_BLOCK:
-                print("XX", end="|")
-            else:
-                letter = knownLetters.get(element)
-                if letter != None:
-                    print(letter.capitalize(),end=" |")
-                else:
-                    print("  ", end="|")
-        print()
-    print("+--"*len(row),end="+\n")
-    
-
-def showLetterCode(letterCode):
-    print("+--"*13,end="+\n")
-    for j in [0,13] :
-        print(end="|")
-        for i in range(1,14) :
-            print(f"{j+i:2d}", end="|")
-        print()
-        print(end="|")
-        for i in range(1,14) :
-            letter = letterCode.get(j+i)
-            if letter == None:
-                letter = '  '
-            else:
-                letter = ' '+letter.capitalize()
-            print(letter,end="|")
-        print()
-        print("+--"*13,end="+\n")
 
 
 class WordToSolve:
@@ -120,7 +78,7 @@ class WordToSolve:
                wts.string(),
                "{:,}".format(numOpts),
                '' if numOpts == 1 else 's',
-               "----" if numOpts == 0 else wts.candidateWordsList[0]))
+               "----" if numOpts <= 0 else wts.candidateWordsList[0]))
             depth = depth + 1
 
     def copy(self):
@@ -139,8 +97,9 @@ class WordToSolve:
 
     # finds the matches for this wordInCode, from within the supplied list, or it's own if none provided
     # it then updteas its list to the new collection of candidate words.
-    # KNOWN ISSUE: The inital lists above have not culled candidate words which allocate the same letter to different numbers.
-    def updateCandidateList(self, rubric, newCandidateWordsList=None):
+    # KNOWN ISSUE: The inital lists above have not culled candidate words which allocate the same letter
+    #              to different numbers. I cannot see how to do this, iwith my kowledge of regex.
+    def updateCandidateList(self, rubric, newCandidateWordsList=None, verbose=False):
         if newCandidateWordsList == None:
             newCandidateWordsList = self.candidateWordsList
         if newCandidateWordsList == None:
@@ -150,10 +109,12 @@ class WordToSolve:
         # build the match for letters which are not known - they can be any letter
         # except an already used one. The brackets make it a capture group, so
         # so repeats can be used to reduce further search space.
-        unknown_r  = '([^'
-        for letter in rubric.values() :
-            unknown_r += letter
-        unknown_r += '])'
+        if len(rubric) == 0 :
+            unknown_r = 'A-Za-z'
+        else :
+            unknown_r = '^'
+            for letter in rubric.values() :
+                unknown_r += letter
 
         # Keep a track of the unkonwns already seen
         seen_unknowns = list()
@@ -171,7 +132,7 @@ class WordToSolve:
                 if seen_unknowns.count(code) == 0 :
                     # Haven't seen this number yet, so it is unknown, and won't
                     # have previously been macthed
-                    r += unknown_r
+                    r += '([' + unknown_r + '])'
                     seen_unknowns.append(code)
                 else :
                     # This unknown is the same as a previous unkown, so match to
@@ -180,270 +141,399 @@ class WordToSolve:
 
         r += "$"                # Regex for end of string
 
-        print("r for", self.wordInCode, " is ", r)
+        if verbose:
+            print("r for", self.wordInCode, " is ", r)
 
         self.setCandidateWordsList(list(filter(lambda x : re.match(r, x) != None, newCandidateWordsList)))
 
+
+
+"""
+This is the class for solving a collection of number to letter words with a dcitionary,
+and a starting rubric (if any). It is the engine used by the codeword puzzle solver, but
+it can serve for other problems of a similar type.
+"""
+        
+class XwordToSolve:
+    def __init__(self, starting_rubric: dict):
+        if starting_rubric == None:
+            self.starting_rubric = dict()
+        else:
+            self.starting_rubric = starting_rubric.copy
+
+        self.verbose = True
+        self.veryVerbose = True
+
+    def setWordsToSolve(self, start_wts_list):
+        self.start_wts_list = start_wts_list.copy()
+
+    def setBaseDictionary(self, base_dictionary):
+        self.base_dictionary = base_dictionary
+
+    class Solution:
+        # Used for storing a solution ...
+        def __init__ (self, solvedWordList, solvedRubric):
+            self.solvedWordList = solvedWordList.copy()
+            self.solvedRubric = solvedRubric.copy()
+
+
+    def showRubric(self, rubric=None):
+        if rubric == None :
+            rubric = self.starting_rubric
+
+        print("+--"*13,end="+\n")
+        for j in [0,13] :
+            print(end="|")
+            for i in range(1,14) :
+                print(f"{j+i:2d}", end="|")
+            print()
+            print(end="|")
+            for i in range(1,14) :
+                letter = rubric.get(j+i)
+                if letter == None:
+                    letter = '  '
+                else:
+                    letter = ' '+letter.capitalize()
+                print(letter,end="|")
+            print()
+            print("+--"*13,end="+\n")
+
+    def solve(self, multipleResults=False):
+        self.multipleResults = multipleResults
+        if self.verbose:
+            print ("Initial list of words to solve, will have no solutions yet")
+            WordToSolve.showList(self.start_wts_list)
+
+        start1 = time.time()
+        
+        # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
+        dictionary_by_word_length = dict()
+
+        # Create the initial list of allowed words for each word if it hasn't been given.
+        for wts in self.start_wts_list:
+            if wts.candidateWordsList == None:
+                dictionary_subset = dictionary_by_word_length.get(wts.length)
+                if dictionary_subset == None :
+                    r = "^" + "."*wts.length + "$"
+                    dictionary_subset = list(filter(lambda x : re.match(r, x) != None, my_dictionary))
+                    dictionary_by_word_length[wts.length] = dictionary_subset
+                wts.updateCandidateList(rubric, dictionary_subset, self.veryVerbose)
+                if wts.numberOfCandidates() == 0 :
+                    print("One of the words has no options at all before even starting. Stopping now.")
+                    exit()
+
+        # order by number of possible solutions
+        self.start_wts_list.sort(key=WordToSolve.numberOfCandidates)
+
+        start2 = end1 = time.time()
+
+        # And recurse to a soltuion
+        result = list()
+        self.recurseThroughAllCandidates(self.start_wts_list, rubric, 0, result)
+
+        end2 = time.time()
+
+        if self.veryVerbose :
+            print("Parsing and getting first long list of word options: ", end1 - start1)
+            print("Rescursion / solving: ", end2 - start2)
+
+        return result
+
+    # Actually do the exhaustive search
+    # 
+    # depth: the first call will have this at 0 meaning that the start
+    #        all_word_candidates list has beed created and sorted but no
+    #        examinataion of it has been done
+    # letterList: the letter list currently being used / evaluated.
+    # all_wc: the collection of word clues and current options being explored.
+    #
+    # returns:
+    # On failure False ; resultList will be an empty list
+    # On success True  ; resultList will be a list of XwordToSolve.Solution with the solutions in
+    def recurseThroughAllCandidates(self,
+                                    wordToSolveList,
+                                    letterList,
+                                    depth,
+                                    resultList):
+        if self.verbose:
+            print("===== Ordered list incoming at depth %d =====" % depth)
+            WordToSolve.showList(wordToSolveList)
+    
+        # Try all the words this answer might be for the current scenario
+        wordToSolve = wordToSolveList[depth]
+        haveFoundSomething = False;
+        for candidate in wordToSolve.candidateWordsList:
+            if self.verbose:
+                print("\nTrying %s for word %s at depth %d" % (candidate, wordToSolve.string(), depth))
+
+            potentialLetterList = self.createPotentialLetterList(letterList, candidate, wordToSolve.wordInCode)
+
+            # Now, that letter list is be applied to all the words (one at a time) that
+            # are after this one. If any of them then gives a zero option, it means that
+            # this substitutaion has failed. If it hasn't failed, keep digging deeper.
+        
+            # You might thinkg that if one of them gives one option, it means we have
+            # a definite
+            # part of the answer. But that's not the case. It might only have one answer
+            # because of a previous but wrong substitution. The sorting means that we will
+            # dive down the "single option" levels quickly and see if when we make those
+            # substitutions they provide options for lower levles. Or not.
+
+            # Create a fresh wordToSolve list using the new potential letters
+            wts_list_test = self.createNewWCsortedList(wordToSolveList, potentialLetterList, depth, candidate)
+
+
+            # If the word we've just put in is actually the word for the final
+            # one to be solved, we have succeeded (but we did have to put it in, hence this
+            # is after the line above.)
+            if depth == len(wts_list_test) - 1:
+                if self.verbose :
+                    print("Got to the last word in the puzzle with no failures = found a solution")
+                resultList.append(XwordToSolve.Solution(wts_list_test, potentialLetterList))
+                if self.multipleResults == False :
+                    return True
+                haveFoundSomething = True
+
+            # Otherwise Look at the subsequent layers (word candidates) and
+            # find one that doesn't fail.
+            else :
+                exploreMore = True
+                for wts in wts_list_test[depth + 1:]:
+                    numCandidatesHere = wts.numberOfCandidates()
+                    if numCandidatesHere == 0:
+                        if self.verbose :
+                            print("That's a branch with no solutions on it")
+                        exploreMore = False
+                        break
+
+                if exploreMore == True:
+                    # All the lower levels have at least one option, so let's explore them
+                    haveFoundSomething = self.recurseThroughAllCandidates(wts_list_test,
+                                                               potentialLetterList,
+                                                               depth + 1,
+                                                               resultList)
+                    if haveFoundSomething == True and self.multipleResults == False:
+                        return True
+
+        # If we get here, we've failed to find a valid word for this level
+        # and so we need to go back up a level and try again.
+        if self.verbose :
+            print("Depth %d completed one way or another, going back up a step" % depth)
+        return haveFoundSomething
+
+    def createPotentialLetterList(self, startingList, word, codes):
+        """
+        Give a starting number to letter list (startingList) a word (word)
+        and the letters codes (codes) for ech letter of that word create a new
+        number to letter list.
+        Assumes that word and codeas are of the same length and that if there
+        are duplicate numbers / letters they match,
+        """
+        newList = startingList.copy()
+        i = 0;
+        for code in codes:
+            newList[code] = word[i]
+            i = i + 1
+        return newList
+
+
+    # depth is the depth to which words have been fixed in this allWClist
+    def createNewWCsortedList(self, startingWordToSolveList, letterToNumberList, depth, wordForThisDepth):
+        """
+        Given the currently being explores WC list andan updated number to letter
+        list, remove all the words which no longer word from the candidates lists
+        and put the resutls in a fresh WC list, sorted so that layer up to depth
+        retain their current order (they should be 1 by definition, and should keep
+        recursion order), lower ayer reordered to have lowest number of options first.
+        """
+
+        # NOTE: we probably don't need to redo the previously done levels here ...
+    
+        newWTSlist      = list()
+        newWTSlistBelow = list()
+        myDepth = 0;
+        for wts in startingWordToSolveList:
+
+            # If we've alreday got this one down to one option, simply copy
+            # it trhough to the new list or create and append the one that is being
+            # fixed to one answer
+            copyWTS = wts.copy()
+            if myDepth < depth :
+                newWTSlist.append(copyWTS)
+            elif myDepth == depth:
+                copyWTS.setCandidateWordsList([wordForThisDepth])
+                newWTSlist.append(copyWTS)
+            else :
+                # Create trimmed list for this word/answer given the new code letter
+                # list
+                copyWTS.updateCandidateList(letterToNumberList)
+                newWTSlistBelow.append(copyWTS)
+
+            myDepth = myDepth + 1
+
+        # Sort the below list and then append all of its entries to the result
+        newWTSlistBelow.sort(key=WordToSolve.numberOfCandidates)
+        newWTSlist.extend(newWTSlistBelow)
+
+        return newWTSlist
+
+
+
+class CodewordToSolve:
+    def __init__(self, starting_grid: tuple, starting_rubric: dict, base_dictionary: dict):
+        self.starting_grid = starting_grid
+        self.starting_rubric = starting_rubric.copy()
+        self.base_dictionary = base_dictionary
+
+        self.xwts = XwordToSolve(rubric)
+
+        self.verbose = True
+        self.multipleResults = False
+
+    def assumeManySolutions(self):
+        self.multipleResults = True
+
+    def showGrid(self, grid=None, knownLetters=None):
+        if grid == None:
+            grid = self.starting_grid
+        if knownLetters == None:
+            knownLetters = self.starting_rubric
+        
+        for row in matrix:
+            print("+--"*len(row),end="+\n")
+            print(end="|")
+            for element in row:
+                if element == SQ_BLOCK:
+                    print("XX", end="|")
+                else:
+                    print(f"{element:2d}", end="|")
+            print()
+            print(end="|")
+            for element in row:
+                if element == SQ_BLOCK:
+                    print("XX", end="|")
+                else:
+                    letter = knownLetters.get(element)
+                    if letter != None:
+                        print(letter.capitalize(),end=" |")
+                    else:
+                        print("  ", end="|")
+            print()
+        print("+--"*len(row),end="+\n")
+    
+
+    def showRubric(self, rubric):
+        self.xwts.showRubric(rubric)
+
+    
+    def solve(self):
+        if self.verbose == True :
+            print("Starting grid.")
+            self.showGrid()
+        # Step one, parse the grid using the rubric, into a list of words to solve
+        self.wts_list = self.parse()
+        self.xwts.setWordsToSolve(self.wts_list)
+        self.xwts.setBaseDictionary(self.base_dictionary)
+        return self.xwts.solve(self.multipleResults)
         
 
-#
-# Probably the structure shoulkd then become
-#
-# class xWord - is given a list of wordToSolve and s starting rubric (and an overall
-#               dictionary if individual ones aren't supplied per wordToSolve) and
-#               retuns all the solution rubrics
-#
-# class CodeWord - is given grid, startig rubric, and dictionary and returns all the solution rubrics.
+    # =============== Extract words ===============
+    # Horizontal words: Have a word list. This will be a list of lists. First two elements
+    # are the position of the first letter.
+    # For each row, start at [0] and test if non-zero.
+    # If it's non-zero, test whether next element is non-zero. If it is, this is becoming a word.
+    # Add the first two letters to a tentative word, then progress until we hit a zero. Add
+    # the word to the word list - also need to store the location of the word (or at least of
+    # the first letter).
+    def parse(self, m: tuple = None):
+        if m == None:
+            m = self.starting_grid
+            
+        """
+        Parse the puzzle matrix both across and down to find words to solve.
+        Return results as a list of lists. Each inner list represents one word and is structured:
+        [(direction, row, col), n1, n2, n3,...] where n1... is the code for the letter
 
-# =============== Extract words ===============
+        NOTE: Currently assumes a square grid, and a size of 11x11.
 
-# Horizontal words: Have a word list. This will be a list of lists. First two elements
-# are the position of the first letter.
-# For each row, start at [0] and test if non-zero.
-# If it's non-zero, test whether next element is non-zero. If it is, this is becoming a word.
-# Add the first two letters to a tentative word, then progress until we hit a zero. Add
-# the word to the word list - also need to store the location of the word (or at least of
-# the first letter).
+        :param m:
+        :return: word_list: list
+        """
+        directions = ['across', 'down']
+        word = list()  # Used to store the word we're working on
+        wordToSolveList = list() # Stores the list of words to solve.
 
-def parse(m: tuple):
-    """
-    Parse the puzzle matrix both across and down to find words to solve.
-    Return results as a list of lists. Each inner list represents one word and is structured:
-    [(direction, row, col), n1, n2, n3,...] where n1... is the code for the letter
-
-    NOTE: Currently assumes a square grid, and a size of 11x11.
-
-    :param m:
-    :return: word_list: list
-    """
-    directions = ['across', 'down']
-    word = list()  # Used to store the word we're working on
-    wordToSolveList = list() # Stores the list of words to solve.
-
-    for direction in directions:
-
+        # There is probably a way of doing this in three nestled loops and handling
+        # non-square unknown size grids. But I can;t work it out. So we have two loops.
+        # It still assumes a rectangle.
+        xLast = len(m[0]) - 1
+        direction = 'across'
         for y in range(len(m)):          # number of rows (size of outer tuple)
-            # word = list()              # todo: can probably be deleted as word is reset at end of row already
-
-            for x in range(len(m[0])):   # number of columns (size of inner tuple)
-
-                if direction == 'down':  # flips so x is rows and y is columns if we are reading down
-                    x, y = y, x
-
-                square = matrix[y][x]
+            for x in range(len(m[y])):   # number of columns (size of inner tuple)
+                square = m[y][x]
 
                 if square != 0:  # Encountered a letter
                     if len(word) == 0:
-                        # Neil: I have put x and y the way I think they should go, but why were they the other way round?
-                        # They are now correct for accross rather than down, now I think about it.
-                        word.append((direction, x, y), )  # If start of a word, start with direction & coordinates
-                        if direction == 'across' :
-                            startX = x
-                            startY = y
-                        else :
-                            startX = y
-                            startY = x
+                        startX = x
+                        startY = y
                     word.append(square)  # First letter
 
-                if square == 0 or x == 10:  # Encountered a blank space
+                if square == 0 or x == xLast:  # Encountered a blank space or end of row
                     if len(word) > 3:  # Then we collected a word and have come to the end of it
-                        wordToSolveList.append(WordToSolve(startX, startY, direction, word[1:]))
-                        word = list()  # Reset word
+                        wordToSolveList.append(WordToSolve(startX, startY, direction, word))
 
-                    word = list()
-
-                if direction == 'down':  # flips x and y back before we reach the loop tests
-                    x, y = y, x
-    return wordToSolveList
+                    word = list() # Reset word (either it wasn't a word, or it has been noted)
 
 
+        direction = 'down' # So now go through them the other way round running down.
+        yLast = len(m) - 1
+        for x in range(len(m[0])):    
+            for y in range(len(m)):
+                square = m[y][x]
 
-# ======= More hard core stuff ========
+                if square != 0:  # Encountered a letter
+                    if len(word) == 0:
+                        startX = x
+                        startY = y
+                    word.append(square)  # First letter
 
-def createPotentialLetterList(startingList, word, codes):
-    """
-    Give a starting number to letter list (startingList) a word (word)
-    and the letters codes (codes) for ech letter of that word create a new
-    number to letter list.
-    Assumes that word and codeas are of the same length and that if there
-    are duplicate numbers / letters they match,
-    """
-    newList = startingList.copy()
-    i = 0;
-    for code in codes:
-        newList[code] = word[i]
-        i = i + 1
-    return newList
+                if square == 0 or y == yLast:  # Encountered a blank space or end of column
+                    if len(word) > 3:  # Then we collected a word and have come to the end of it
+                        wordToSolveList.append(WordToSolve(startX, startY, direction, word))
 
-# depth is the depth to which words have been fixed in this allWClist
-def createNewWCsortedList(startingWordToSolveList, letterToNumberList, depth, wordForThisDepth):
-    """
-    Given the currently being explores WC list andan updated number to letter
-    list, remove all the words which no longer word from the candidates lists
-    and put the resutls in a fresh WC list, sorted so that layer up to depth
-    retain their current order (they should be 1 by definition, and should keep
-    recursion order), lower ayer reordered to have lowest number of options first.
-    """
-
-    # NOTE: we probably don't need to redo the previously done levels here ...
-    
-    newWTSlist      = list()
-    newWTSlistBelow = list()
-    myDepth = 0;
-    for wts in startingWordToSolveList:
-
-        # If we've alreday got this one down to one option, simply copy
-        # it trhough to the new list or create and append the one that is being
-        # fixed to one answer
-        copyWTS = wts.copy()
-        if myDepth < depth :
-            newWTSlist.append(copyWTS)
-        elif myDepth == depth:
-            copyWTS.setCandidateWordsList([wordForThisDepth])
-            newWTSlist.append(copyWTS)
-        else :
-            # Create trimmed list for this word/answer given the new code letter
-            # list
-            copyWTS.updateCandidateList(letterToNumberList)
-#            copyWTS.setCandidateWordsList(findMatch(wts.wordInCode, letterToNumberList, wts.candidateWordsList))
-            newWTSlistBelow.append(copyWTS)
-
-        myDepth = myDepth + 1
-
-    # Sort the below list and then append all of its entries to the result
-    newWTSlistBelow.sort(key=WordToSolve.numberOfCandidates)
-    newWTSlist.extend(newWTSlistBelow)
-
-    return newWTSlist
-
-# Actually do the exhaustive search
-# 
-# depth: the first call will have this at 0 meaning that the start
-#        all_word_candidates list has beed created and sorted but no
-#        examinataion of it has been done
-# letterList: the letter list currently being used / evaluated.
-# all_wc: the collection of word clues and current options being explored.
-#
-# return three pieces of information:
-# On Failure (False, None, None)
-# On success (True, solved list of Word candidates (ie one ancswer each), number to letter list)
-def recurseThroughAllCandidates(wordToSolveList, letterList, depth):
-    print("===== Ordered list incoming at depth %d =====" % depth)
-    WordToSolve.showList(wordToSolveList)
-    
-    # Try all the words this answer might be for the current scenario
-    wordToSolve = wordToSolveList[depth]
-    for candidate in wordToSolve.candidateWordsList:
-        print("\nTrying %s for word %s at depth %d" % (candidate, wordToSolve.string(), depth))
-        potentialLetterList = createPotentialLetterList(letterList, candidate, wordToSolve.wordInCode)
-
-        # Now, that letter list is be applied to all the words (one at a time) that
-        # are after this one. If any of them then gives a zero option, it means that
-        # this substitutaion has failed. If it hasn't failed, keep digging deeper.
-        
-        # You might thinkg that if one of them gives one option, it means we have
-        # a definite
-        # part of the answer. But that's not the case. It might only have one answer
-        # because of a previous but wrong substitution. The sorting means that we will
-        # dive down the "single option" levels quickly and see if when we make those
-        # substitutions they provide options for lower levles. Or not.
-
-        # Create a fresh wordToSolve list using the new potential letters
-        wts_list_test = createNewWCsortedList(wordToSolveList, potentialLetterList, depth, candidate)
-
-        # If the word we've just put in is actually the word for the final
-        # one to be solved, we have succeeded (but we did have to put it in, hence this
-        # is after the line above.)
-        if depth == len(wts_list_test) - 1:
-            print("Got to the last word in the puzzle with no failures = SUCCESS")
-            return True, wts_list_test, potentialLetterList
-
-        # Otherwise Look at the subsequent layers (word candidates) and
-        # find one that doesn't fail.
-        success = True
-        for wts in wts_list_test[depth + 1:]:
-            numCandidatesHere = wts.numberOfCandidates()
-            if numCandidatesHere == 0:
-                print("That's a fail - at least one zero option results")
-                success = False
-                break
-
-        if success == True:
-            # All the lower levels have at least one option, so let's explore them
-            print("Going deeper")
-            result = recurseThroughAllCandidates(wts_list_test, potentialLetterList, depth + 1)
-            success = result[0]
-
-            if success == True:
-                return result
-
-    # If we get here, we've failed to find a valid word for this level
-    # and so we need to go back up a level and try again.
-    print("All options at depth %d failed, going back up a step" % depth)
-    return False, None, None
+                    word = list() # Reset word (either it wasn't a word, or it has been noted)
 
 
-def solveCodeWord(matrix, rubric, dictionary):
-
-    wordToSolveList = parse(matrix)
-
-    for wtc in wordToSolveList:
-        wtc.show()
-
-    # Show starting position
-    showPuzzle(matrix, rubric)
+        return wordToSolveList
 
 
-    start1 = time.time()
-    # For each word in word_list, generate a list of all possible matches, based on the letters we know so far
+   
 
-    dictionary_by_word_length = dict()
 
-    # Create the initial list of allowed words for each word if it hasn;t been given.
-    for wts in wordToSolveList:
-        if wts.candidateWordsList == None:
-            dictionary_subset = dictionary_by_word_length.get(wts.length)
-            if dictionary_subset == None :
-                r = "^" + "."*wts.length + "$"
-                dictionary_subset = list(filter(lambda x : re.match(r, x) != None, my_dictionary))
-                dictionary_by_word_length[wts.length] = dictionary_subset
-            wts.updateCandidateList(rubric, dictionary_subset)
-            if wts.numberOfCandidates() == 0 :
-                print("One of the words has no options at all before even starting. Stopping now.")
-                exit()
-
-    # order by number of possible solutions
-    wordToSolveList.sort(key=WordToSolve.numberOfCandidates)
-
-    start2 = end1 = time.time()
-
-    # And recurse to a soltuion
-    result = recurseThroughAllCandidates(wordToSolveList, rubric, 0)
-
-    end2 = time.time()
-
-    print("Parsing and getting first long list of word options: ", end1 - start1)
-    print("Rescursion / solving: ", end2 - start2)
-
-    return result
 
 
 if __name__ == "__main__":
 
+    # Get the thing you need to solve it: the puzzle and the dictionary
     matrix, rubric = setPuzzle()
-
     dir_path = os.path.dirname(os.path.realpath(__file__))
-
     with open(dir_path + "/ukenglish.txt", "r", encoding="latin-1") as myfile:
         my_dictionary = myfile.read().splitlines()
 
-    result = solveCodeWord(matrix, rubric, my_dictionary)
 
-    if (result[0] == False) :
+    # Set up the class and solve
+    cwts = CodewordToSolve(matrix, rubric, my_dictionary)
+    cwts.assumeManySolutions()
+    results = cwts.solve()
+
+    # Output results
+    if (len(results) == 0) :
         print("FAILED TO SOLVE PUZZLE")
     else :
-        print("RESULT:")
-        showPuzzle(matrix, result[2])
-        #and a sorted version of the number to letter result:
-        showLetterCode(result[2]);
+        print("Solutions found: %d" % len(results))
+        for r in results:
+            print("RESULT:")
+            cwts.showGrid(matrix, r.solvedRubric)
+            #and a sorted version of the number to letter result:
+            cwts.showRubric(r.solvedRubric)
 
