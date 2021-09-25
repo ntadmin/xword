@@ -1,2 +1,2 @@
 # xword
-Neil and John solve word puzzles on grids
+Neil and John solve word puzzles on grids. Or not on gride.
